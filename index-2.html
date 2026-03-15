@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VoiceX — Real-Time Voice Translator</title>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0a0a0f"/>
+<meta name="description" content="Real-time AI voice translator — 25+ languages, 100% free"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;font-family:'Space Grotesk',sans-serif;color:#f0f0f5;min-height:100vh;overflow-x:hidden}
+@keyframes ripple{0%{transform:scale(1);opacity:0.8}100%{transform:scale(2.5);opacity:0}}
+@keyframes waveAnim{0%,100%{height:4px}50%{height:22px}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes glow{0%,100%{box-shadow:0 0 16px #a855f740}50%{box-shadow:0 0 28px #a855f770}}
+@keyframes scanline{0%{top:-5%}100%{top:105%}}
+.scanline{position:fixed;left:0;right:0;height:3px;background:linear-gradient(transparent,rgba(168,85,247,0.06),transparent);animation:scanline 7s linear infinite;pointer-events:none;z-index:999}
+.wrap{min-height:100vh;background:radial-gradient(ellipse at top left,#1a0a2e 0%,#0a0a0f 60%);padding:18px 12px 50px;position:relative}
+.wrap::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(168,85,247,0.01) 2px,rgba(168,85,247,0.01) 4px);pointer-events:none}
+.head{text-align:center;margin-bottom:22px}
+.brand{font-size:34px;font-weight:700;background:linear-gradient(135deg,#a855f7,#3b82f6,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-1px}
+.sub{font-size:10px;color:#4a4a6a;letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+.badge{display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,#052a1a,#073a20);border:1px solid #0a5a2a;border-radius:20px;padding:3px 12px;font-size:10px;color:#22c55e;letter-spacing:1px;margin-top:8px}
+.sbar{text-align:center;font-size:9px;letter-spacing:1px;color:#2a2a4a;padding:8px 14px;background:#0a0a14;border:1px solid #1a1a28;border-radius:8px;margin-bottom:14px;transition:all 0.3s;text-transform:uppercase}
+.sbar.on{color:#a855f7;border-color:#a855f730}
+.panel{display:grid;grid-template-columns:1fr 40px 1fr;gap:8px;margin-bottom:14px}
+.card{background:#111118;border:1px solid #1e1e2e;border-radius:14px;padding:14px;position:relative;overflow:hidden}
+.card::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,#a855f720,transparent)}
+.clabel{font-size:8px;letter-spacing:2px;color:#3a3a5a;text-transform:uppercase;margin-bottom:10px;font-weight:600}
+.flag-wrap{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 10px;background:#0a0a18;border:2px solid #1e1e2e;position:relative;transition:all 0.3s}
+.flag-wrap.active{border-color:#a855f760;animation:glow 1.5s ease-in-out infinite}
+.flag-wrap.active::after{content:'';position:absolute;inset:-7px;border-radius:50%;border:2px solid #a855f730;animation:ripple 1.2s ease-out infinite}
+select{width:100%;background:#0a0a18;border:1px solid #1e1e2e;border-radius:8px;color:#d0d0e0;font-family:'Space Grotesk',sans-serif;font-size:11px;padding:7px 8px;cursor:pointer;outline:none;appearance:none;transition:border-color 0.2s}
+select:focus{border-color:#a855f750}
+.tbox{min-height:54px;background:#0a0a18;border:1px solid #1e1e2e;border-radius:8px;padding:8px 10px;margin-top:9px;font-size:11px;line-height:1.6;color:#6060a0;word-break:break-word}
+.tlabel{font-size:8px;letter-spacing:2px;color:#2a2a4a;text-transform:uppercase;margin-bottom:2px}
+.out{color:#e0e0ff;animation:fadeIn 0.3s ease}
+.bars{display:flex;align-items:center;gap:2px;height:26px;justify-content:center;margin:8px 0}
+.bar{width:3px;background:#1e1e2e;border-radius:2px;height:4px;transition:background 0.2s}
+.bar.on{background:linear-gradient(to top,#a855f7,#3b82f6)}
+.mid{display:flex;flex-direction:column;align-items:center;padding-top:36px;gap:6px}
+.swbtn{width:36px;height:36px;border-radius:50%;border:1px solid #2a2a3a;background:#111118;cursor:pointer;color:#6060a0;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.2s}
+.swbtn:hover,.swbtn:active{border-color:#a855f760;color:#a855f7;background:#1a0a2e}
+.ctrls{display:flex;align-items:center;justify-content:center;gap:16px;margin:12px 0}
+.mic{width:68px;height:68px;border-radius:50%;border:2px solid #a855f7;background:linear-gradient(135deg,#1a0a2e,#0f0a20);color:#a855f7;cursor:pointer;font-size:26px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;position:relative;-webkit-tap-highlight-color:transparent}
+.mic:active{transform:scale(0.95)}
+.mic.on{background:linear-gradient(135deg,#2a0a4e,#1a0a38);box-shadow:0 0 25px #a855f750}
+.mic.on::after{content:'';position:absolute;inset:-8px;border-radius:50%;border:2px solid #a855f730;animation:ripple 1s ease-out infinite}
+.clr{width:46px;height:46px;border-radius:50%;border:1px solid #2a2a3a;background:transparent;color:#3a3a5a;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;-webkit-tap-highlight-color:transparent}
+.clr:active{border-color:#ef444460;color:#ef4444}
+.hist{background:#0a0a14;border:1px solid #1a1a28;border-radius:12px;padding:12px;max-height:180px;overflow-y:auto;margin-top:4px}
+.htitle{font-size:8px;letter-spacing:2px;color:#2a2a4a;text-transform:uppercase;margin-bottom:8px;font-weight:600}
+.hrow{display:flex;gap:6px;margin-bottom:8px;font-size:10px;line-height:1.5;animation:fadeIn 0.3s ease;border-left:2px solid #2a2a3a;padding-left:8px;flex-wrap:wrap}
+.hflag{min-width:18px}
+.horig{color:#4a4a7a;flex:1;min-width:60px}
+.htrans{color:#a0a0e0;flex:1;min-width:60px}
+.note{text-align:center;font-size:9px;color:#2a2a4a;margin-top:14px;line-height:2}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:#0a0a14}::-webkit-scrollbar-thumb{background:#2a2a4a;border-radius:2px}
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+<div class="wrap">
+  <div class="head">
+    <div class="brand">VoiceX</div>
+    <div class="sub">Real-Time AI Voice Translator</div>
+    <div><span class="badge">✦ 100% FREE · No signup · No API key</span></div>
+  </div>
+
+  <div class="sbar" id="sbar">మీ language select చేసి 🎤 నొక్కండి</div>
+
+  <div class="panel">
+    <div class="card">
+      <div class="clabel">📞 Mee Language</div>
+      <div class="flag-wrap" id="spkFlag">🇮🇳</div>
+      <select id="spkLang" onchange="updateFlag()">
+        <!-- Options injected by JS -->
+      </select>
+      <div class="tbox">
+        <div class="tlabel">Mee speech</div>
+        <div id="spokenText" style="color:#1e1e3a">Ikkada speech kanavastundi...</div>
+      </div>
+      <div class="bars" id="spkBars"></div>
+    </div>
+
+    <div class="mid">
+      <button class="swbtn" onclick="swapLangs()" title="Swap">⇅</button>
+      <span style="font-size:7px;color:#2a2a4a;letter-spacing:1px">SWAP</span>
+    </div>
+
+    <div class="card">
+      <div class="clabel">🔊 Valla Language</div>
+      <div class="flag-wrap" id="rcvFlag">🇨🇳</div>
+      <select id="rcvLang" onchange="updateFlag()">
+        <!-- Options injected by JS -->
+      </select>
+      <div class="tbox">
+        <div class="tlabel">Translation</div>
+        <div id="translatedText" style="color:#1e1e3a">Translation ikkada kanavastundi...</div>
+      </div>
+      <div class="bars" id="rcvBars"></div>
+    </div>
+  </div>
+
+  <div class="ctrls">
+    <button class="mic" id="micBtn" onclick="toggleMic()">🎤</button>
+    <button class="clr" onclick="resetAll()">✕</button>
+  </div>
+
+  <div id="histBox" style="display:none">
+    <div class="hist">
+      <div class="htitle">📋 Conversation History</div>
+      <div id="histList"></div>
+    </div>
+  </div>
+
+  <div class="note">
+    💡 Chrome browser best · Mic permission allow cheyyandi<br/>
+    ✦ MyMemory free API · Zero cost · 25+ languages
+  </div>
+</div>
+
+<script>
+const LANGS = [
+  {code:"te",speech:"te-IN",name:"Telugu",flag:"🇮🇳",label:"తెలుగు"},
+  {code:"hi",speech:"hi-IN",name:"Hindi",flag:"🇮🇳",label:"हिन्दी"},
+  {code:"en",speech:"en-US",name:"English",flag:"🇺🇸",label:"English"},
+  {code:"zh-CN",speech:"zh-CN",name:"Chinese",flag:"🇨🇳",label:"中文"},
+  {code:"ja",speech:"ja-JP",name:"Japanese",flag:"🇯🇵",label:"日本語"},
+  {code:"ko",speech:"ko-KR",name:"Korean",flag:"🇰🇷",label:"한국어"},
+  {code:"ar",speech:"ar-SA",name:"Arabic",flag:"🇸🇦",label:"العربية"},
+  {code:"es",speech:"es-ES",name:"Spanish",flag:"🇪🇸",label:"Español"},
+  {code:"fr",speech:"fr-FR",name:"French",flag:"🇫🇷",label:"Français"},
+  {code:"de",speech:"de-DE",name:"German",flag:"🇩🇪",label:"Deutsch"},
+  {code:"pt",speech:"pt-BR",name:"Portuguese",flag:"🇧🇷",label:"Português"},
+  {code:"ru",speech:"ru-RU",name:"Russian",flag:"🇷🇺",label:"Русский"},
+  {code:"it",speech:"it-IT",name:"Italian",flag:"🇮🇹",label:"Italiano"},
+  {code:"ta",speech:"ta-IN",name:"Tamil",flag:"🇮🇳",label:"தமிழ்"},
+  {code:"kn",speech:"kn-IN",name:"Kannada",flag:"🇮🇳",label:"ಕನ್ನಡ"},
+  {code:"ml",speech:"ml-IN",name:"Malayalam",flag:"🇮🇳",label:"മലയാളം"},
+  {code:"tr",speech:"tr-TR",name:"Turkish",flag:"🇹🇷",label:"Türkçe"},
+  {code:"vi",speech:"vi-VN",name:"Vietnamese",flag:"🇻🇳",label:"Tiếng Việt"},
+  {code:"th",speech:"th-TH",name:"Thai",flag:"🇹🇭",label:"ภาษาไทย"},
+  {code:"id",speech:"id-ID",name:"Indonesian",flag:"🇮🇩",label:"Bahasa"},
+  {code:"nl",speech:"nl-NL",name:"Dutch",flag:"🇳🇱",label:"Nederlands"},
+  {code:"bn",speech:"bn-IN",name:"Bengali",flag:"🇧🇩",label:"বাংলা"},
+  {code:"ur",speech:"ur-PK",name:"Urdu",flag:"🇵🇰",label:"اردو"},
+  {code:"tl",speech:"fil-PH",name:"Filipino",flag:"🇵🇭",label:"Filipino"},
+  {code:"sw",speech:"sw-KE",name:"Swahili",flag:"🇰🇪",label:"Kiswahili"},
+];
+
+// Build select options
+const spkSel = document.getElementById('spkLang');
+const rcvSel = document.getElementById('rcvLang');
+LANGS.forEach(l => {
+  const o1 = new Option(`${l.flag} ${l.name} — ${l.label}`, l.code);
+  const o2 = new Option(`${l.flag} ${l.name} — ${l.label}`, l.code);
+  spkSel.add(o1);
+  rcvSel.add(o2);
+});
+spkSel.value = 'te';
+rcvSel.value = 'zh-CN';
+
+// Build wave bars
+function makeBars(id) {
+  const c = document.getElementById(id);
+  for(let i=0;i<14;i++){const d=document.createElement('div');d.className='bar';d.dataset.i=i;c.appendChild(d);}
+}
+makeBars('spkBars');
+makeBars('rcvBars');
+
+let waveIntervals = {};
+function startWave(id) {
+  const bars = document.querySelectorAll(`#${id} .bar`);
+  bars.forEach(b => b.classList.add('on'));
+  waveIntervals[id] = setInterval(() => {
+    bars.forEach((b,i) => {
+      b.style.height = (4 + Math.random()*20) + 'px';
+    });
+  }, 120);
+}
+function stopWave(id) {
+  clearInterval(waveIntervals[id]);
+  document.querySelectorAll(`#${id} .bar`).forEach(b => {
+    b.classList.remove('on');
+    b.style.height = '4px';
+  });
+}
+
+function getL(code){ return LANGS.find(l=>l.code===code); }
+function updateFlag(){
+  document.getElementById('spkFlag').textContent = getL(spkSel.value)?.flag||'🌐';
+  document.getElementById('rcvFlag').textContent = getL(rcvSel.value)?.flag||'🌐';
+}
+function setStatus(msg, active){
+  const s = document.getElementById('sbar');
+  s.textContent = msg;
+  s.className = 'sbar' + (active?' on':'');
+}
+function swapLangs(){
+  const t = spkSel.value;
+  spkSel.value = rcvSel.value;
+  rcvSel.value = t;
+  updateFlag();
+  document.getElementById('spokenText').textContent = 'Ikkada speech kanavastundi...';
+  document.getElementById('spokenText').style.color = '#1e1e3a';
+  document.getElementById('translatedText').textContent = 'Translation ikkada kanavastundi...';
+  document.getElementById('translatedText').style.color = '#1e1e3a';
+}
+
+let recognition = null;
+let listening = false;
+let history = [];
+
+async function translate(text, from, to) {
+  setStatus('TRANSLATING...', true);
+  try {
+    // Google Translate free API — most accurate for all languages including Telugu
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${from}&tl=${to}&dt=t&q=${encodeURIComponent(text)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    // Google returns nested array — extract all translated parts
+    const t = data[0]?.map(x => x?.[0]).filter(Boolean).join('') || '';
+    if(t) {
+      const el = document.getElementById('translatedText');
+      el.textContent = t;
+      el.className = 'out';
+      el.style.color = '';
+      setStatus('🔊 PLAYING...', true);
+      startWave('rcvBars');
+      document.getElementById('rcvFlag').classList.add('active');
+
+      window.speechSynthesis.cancel();
+
+      // Wait for voices to load
+      let voices = window.speechSynthesis.getVoices();
+      if(!voices.length) {
+        await new Promise(r => {
+          window.speechSynthesis.onvoiceschanged = () => { voices = window.speechSynthesis.getVoices(); r(); };
+          setTimeout(r, 1000);
+        });
+      }
+
+      const utt = new SpeechSynthesisUtterance(t);
+      const targetSpeech = getL(to)?.speech || to;
+      utt.lang = targetSpeech;
+
+      // Find best matching voice for target language
+      const match = voices.find(v => v.lang === targetSpeech)
+        || voices.find(v => v.lang.startsWith(targetSpeech.split('-')[0]))
+        || null;
+      if(match) utt.voice = match;
+
+      utt.rate = 0.88;
+      utt.pitch = 1.0;
+      utt.volume = 1.0;
+
+      utt.onend = () => {
+        stopWave('rcvBars');
+        document.getElementById('rcvFlag').classList.remove('active');
+        setStatus('✅ Done — Malli matladatam ki 🎤 nakkandi', false);
+      };
+      utt.onerror = () => {
+        stopWave('rcvBars');
+        document.getElementById('rcvFlag').classList.remove('active');
+        setStatus('Voice error — Text translation ready above', false);
+      };
+      window.speechSynthesis.speak(utt);
+      return t;
+    }
+  } catch(e) {
+    setStatus('Error — Internet check cheyyandi', false);
+  }
+  return '';
+}
+
+function toggleMic() {
+  if(listening) { 
+    listening = false;
+    recognition?.stop(); 
+    return; 
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ setStatus('Chrome browser use cheyyandi', false); return; }
+  
+  recognition = new SR();
+  recognition.lang = getL(spkSel.value)?.speech || spkSel.value;
+  recognition.interimResults = true;
+  let final = '';
+
+  recognition.continuous = true;
+  recognition.interimResults = true;
+
+  recognition.onstart = () => {
+    listening = true;
+    document.getElementById('micBtn').classList.add('on');
+    document.getElementById('micBtn').textContent = '⏹ Stop';
+    document.getElementById('micBtn').style.fontSize = '14px';
+    document.getElementById('spkFlag').classList.add('active');
+    startWave('spkBars');
+    document.getElementById('spokenText').textContent = 'Listening... matladandi 🎙️';
+    document.getElementById('spokenText').style.color = '#6060a0';
+    document.getElementById('translatedText').textContent = 'Translation ikkada kanavastundi...';
+    document.getElementById('translatedText').style.color = '#1e1e3a';
+    setStatus('🎙️ LISTENING... complete ga matladandi, appudu ⏹ STOP nakkandi', true);
+  };
+
+  recognition.onresult = (e) => {
+    let interim = '';
+    let finalText = '';
+    for(let i=0; i<e.results.length; i++){
+      if(e.results[i].isFinal){
+        finalText += e.results[i][0].transcript + ' ';
+      } else {
+        interim += e.results[i][0].transcript;
+      }
+    }
+    const display = (finalText + interim).trim();
+    document.getElementById('spokenText').textContent = display || 'Listening...';
+    document.getElementById('spokenText').style.color = '#d0d0f0';
+    final = finalText.trim() || display;
+  };
+
+  recognition.onend = async () => {
+    if(listening) {
+      // Auto restarted — keep going
+      try { recognition.start(); } catch(e){}
+      return;
+    }
+    document.getElementById('micBtn').classList.remove('on');
+    document.getElementById('micBtn').textContent = '🎤';
+    document.getElementById('micBtn').style.fontSize = '26px';
+    document.getElementById('spkFlag').classList.remove('active');
+    stopWave('spkBars');
+    const textToTranslate = document.getElementById('spokenText').textContent;
+    if(textToTranslate && textToTranslate !== 'Listening... matladandi 🎙️' && textToTranslate.trim()) {
+      const t = await translate(textToTranslate.trim(), spkSel.value, rcvSel.value);
+      if(t) {
+        history.push({flag: getL(spkSel.value)?.flag, orig: textToTranslate.trim(), trans: t, tname: getL(rcvSel.value)?.name});
+        renderHistory();
+      }
+    } else {
+      setStatus('Speech detect kaledu — Try again', false);
+    }
+  };
+
+  recognition.onerror = (e) => {
+    if(e.error === 'no-speech') return; // ignore no-speech, keep listening
+    listening = false;
+    document.getElementById('micBtn').classList.remove('on');
+    document.getElementById('micBtn').textContent = '🎤';
+    document.getElementById('micBtn').style.fontSize = '26px';
+    stopWave('spkBars');
+    setStatus('Mic error: ' + e.error, false);
+  };
+
+  recognition.start();
+}
+
+function renderHistory() {
+  if(!history.length) return;
+  document.getElementById('histBox').style.display = 'block';
+  const list = document.getElementById('histList');
+  list.innerHTML = history.slice(-20).map(h => `
+    <div class="hrow">
+      <span class="hflag">${h.flag}</span>
+      <span class="horig">"${h.orig}"</span>
+      <span style="color:#2a2a4a">→</span>
+      <span class="htrans">"${h.trans}" <span style="color:#3a3a6a;font-size:9px">(${h.tname})</span></span>
+    </div>
+  `).join('');
+}
+
+function resetAll() {
+  recognition?.stop();
+  window.speechSynthesis.cancel();
+  stopWave('spkBars');
+  stopWave('rcvBars');
+  document.getElementById('spkFlag').classList.remove('active');
+  document.getElementById('rcvFlag').classList.remove('active');
+  document.getElementById('spokenText').textContent = 'Ikkada speech kanavastundi...';
+  document.getElementById('spokenText').style.color = '#1e1e3a';
+  document.getElementById('translatedText').textContent = 'Translation ikkada kanavastundi...';
+  document.getElementById('translatedText').style.color = '#1e1e3a';
+  document.getElementById('micBtn').classList.remove('on');
+  document.getElementById('micBtn').textContent = '🎤';
+  history = [];
+  document.getElementById('histBox').style.display = 'none';
+  setStatus('Reset — Ready', false);
+}
+
+updateFlag();
+</script>
+</body>
+</html>
